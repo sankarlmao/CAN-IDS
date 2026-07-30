@@ -84,8 +84,8 @@
     
     [ "nucleo:GND.9", "oled:GND", "black", [ "v0" ] ],
     [ "nucleo:3V3", "oled:VCC", "red", [ "v0" ] ],
-    [ "nucleo:A5", "oled:SCL", "yellow", [ "v0" ] ],
-    [ "nucleo:A4", "oled:SDA", "blue", [ "v0" ] ],
+    [ "nucleo:D15", "oled:SCL", "yellow", [ "v0" ] ],
+    [ "nucleo:D14", "oled:SDA", "blue", [ "v0" ] ],
     
     [ "btn_normal:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_normal:1.l", "nucleo:D2", "green", [ "v0" ] ],
