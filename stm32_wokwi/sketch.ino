@@ -66,7 +66,7 @@ static SSD1306AsciiWire display;
 #endif
 
 // Global variables for active buffer stream
-static const float* g_active_buffer = NULL;
+static const uint8_t* g_active_buffer = NULL;
 static size_t g_active_buffer_len = 0;
 static size_t g_global_offset = 0;
 static const char* g_buffer_name = "";

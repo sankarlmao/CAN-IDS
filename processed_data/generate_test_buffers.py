@@ -35,16 +35,16 @@ def main():
         f.write("#define TEST_BUFFERS_H\n\n")
         
         f.write(f"// Simulated normal CAN traffic slice (length: {len(normal_vals)})\n")
-        f.write(f"const float normal_traffic_buffer[] = {{\n    " + ", ".join(map(str, normal_vals)) + "\n};\n\n")
+        f.write(f"const uint8_t normal_traffic_buffer[] = {{\n    " + ", ".join(map(lambda x: str(int(x)), normal_vals)) + "\n};\n\n")
         
         f.write(f"// Simulated DoS attack traffic slice (length: {len(dos_vals)})\n")
-        f.write(f"const float dos_attack_buffer[] = {{\n    " + ", ".join(map(str, dos_vals)) + "\n};\n\n")
+        f.write(f"const uint8_t dos_attack_buffer[] = {{\n    " + ", ".join(map(lambda x: str(int(x)), dos_vals)) + "\n};\n\n")
         
         f.write(f"// Simulated Fuzzy attack traffic slice (length: {len(fuzzy_vals)})\n")
-        f.write(f"const float fuzzy_attack_buffer[] = {{\n    " + ", ".join(map(str, fuzzy_vals)) + "\n};\n\n")
+        f.write(f"const uint8_t fuzzy_attack_buffer[] = {{\n    " + ", ".join(map(lambda x: str(int(x)), fuzzy_vals)) + "\n};\n\n")
         
         f.write(f"// Simulated Impersonation attack traffic slice (length: {len(impersonation_vals)})\n")
-        f.write(f"const float impersonation_attack_buffer[] = {{\n    " + ", ".join(map(str, impersonation_vals)) + "\n};\n\n")
+        f.write(f"const uint8_t impersonation_attack_buffer[] = {{\n    " + ", ".join(map(lambda x: str(int(x)), impersonation_vals)) + "\n};\n\n")
         
         f.write("#endif // TEST_BUFFERS_H\n")
         
