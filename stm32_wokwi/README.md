@@ -1,78 +1,60 @@
-# TinyML CAN Intrusion Detection - STM32 Firmware & Simulation Guide
+# TinyML CAN Intrusion Detection - Interactive STM32 Wokwi Simulation
 
-This directory contains the STM32 C++ firmware, hardware configuration, and simulation files for real-time CAN bus intrusion detection. It includes a mock Edge Impulse SDK to compile and run the project immediately on a local host or inside the Wokwi simulator.
+This directory contains the STM32 Arduino firmware, Wokwi hardware config, and local verification tools for real-time CAN bus intrusion detection. 
 
----
-
-## 1. Project Directory Structure
-*   `main.cpp`: Main firmware file containing the simulation loop, UART outputs, and LED alerting logic. Supports dual-compilation for host PCs (using GCC) and STM32 boards.
-*   `diagram.json`: Hardware definition file for the Wokwi simulator, specifying the `STM32 Nucleo-C031C6` board, an alert LED, and a 220-ohm resistor connected to pin `PA5`.
-*   `test_buffers.h`: Contains C-style float arrays representing slices of CAN traffic from the preprocessed HCRL datasets (`normal_traffic_buffer`, `dos_attack_buffer`, `fuzzy_attack_buffer`, `impersonation_attack_buffer`).
-*   `Makefile`: Build file to compile the firmware locally on your host computer for quick testing and logic verification.
-*   `edge-impulse-sdk/classifier/ei_run_classifier.h`: Mock header file implementing `run_classifier(...)` using a bounding box cluster heuristic. This simulates Edge Impulse's K-Means Anomaly Detection block before you export the real model.
+The workspace has been updated to include an **SSD1306 OLED Display** for real-time data visualization and **4 colored selector buttons** to dynamically switch between traffic streams.
 
 ---
 
-## 2. Local Simulation & Verification
-You can compile and run the project on your Arch Linux system immediately:
-1.  Open a terminal in this directory.
-2.  Run `make` to compile:
+## 1. Hardware Diagram Configuration
+*   **Nucleo-C031C6 Board**: STM32 microcontroller simulating TinyML inference.
+*   **Red LED (PA5)**: Visual intrusion indicator (LED turns ON when an anomaly is detected).
+*   **SSD1306 OLED Display (128x64)**: Shows current traffic stream name, parsed C-CAN byte 6 signal value, real-time anomaly score, anomaly level bar graph, and alert banners. Connected via default I2C pins (`A4` SDA, `A5` SCL).
+*   **4 Interactive Push-buttons** (configured with pull-ups):
+    *   **Green Button (Pin D2)**: Selects **Normal Traffic** stream.
+    *   **Red Button (Pin D3)**: Selects **DoS Attack** stream.
+    *   **Blue Button (Pin D4)**: Selects **Fuzzy Attack** stream.
+    *   **Yellow Button (Pin D5)**: Selects **Impersonation Attack** stream.
+
+---
+
+## 2. Resolving Wokwi Compilation Errors
+In Wokwi Arduino projects, all files must be placed flatly in the root directory. To avoid the `fatal error: edge-impulse-sdk/classifier/ei_run_classifier.h: No such file or directory` compiler error:
+1.  In your Wokwi editor, copy the contents of `edge-impulse-sdk/classifier/ei_run_classifier.h` and write them to a new file in the root directory named **`ei_run_classifier.h`**.
+2.  Your Wokwi files panel should look exactly like this:
+    *   `sketch.ino` (firmware)
+    *   `test_buffers.h` (CAN data slices)
+    *   `ei_run_classifier.h` (mock classifier, or replaced with real SDK contents)
+    *   `diagram.json` (hardware layout)
+
+---
+
+## 3. Step-by-Step Wokwi Setup
+1.  Open [Wokwi](https://wokwi.com/) in your browser.
+2.  Start a new project using the **STM32 Nucleo-C031C6** template.
+3.  **Setup Files**:
+    *   Copy the contents of `sketch.ino` into Wokwi's `sketch.ino`.
+    *   Create `test_buffers.h` in Wokwi and copy the contents of your local `test_buffers.h` into it.
+    *   Create `ei_run_classifier.h` in Wokwi and copy the contents of your local `edge-impulse-sdk/classifier/ei_run_classifier.h` into it.
+    *   Replace Wokwi's `diagram.json` contents with the contents of your local `diagram.json`.
+4.  **Library Manager**:
+    *   Click on Wokwi's **Library Manager** (the book icon on the left sidebar).
+    *   Search and add **Adafruit SSD1306** and **Adafruit GFX Library**.
+5.  **Run & Interact**:
+    *   Click the green **Start Simulation** button.
+    *   Press the buttons (Green, Red, Blue, Yellow) to switch between different CAN streams.
+    *   Watch the OLED render the anomaly bar graph and see the alert LED light up instantly on DoS and Fuzzy attacks!
+
+---
+
+## 4. Local Simulator Verification
+To test the Arduino code logic directly on your local Arch Linux host:
+1.  Run `make` to compile:
     ```bash
     make
     ```
-3.  Execute the simulator:
+2.  Execute the simulator binary:
     ```bash
     ./run_sim
     ```
-4.  Observe the output logs showing how the normal traffic registers `[OK]` (low anomaly score, LED OFF), while DoS and Fuzzy attack traffic registers `[ALERT] INTRUSION!` (high anomaly score, LED ON).
-
----
-
-## 3. Training the Real Model in Edge Impulse Studio
-To replace the mock code with a real TinyML model:
-
-### Step 1: Create a Project
-1.  Go to [Edge Impulse Studio](https://studio.edgeimpulse.com/) and create a free account.
-2.  Create a new project named **CAN-Intrusion-IDS**.
-
-### Step 2: Upload Preprocessed Data
-1.  Navigate to **Data Acquisition** -> **Upload existing data**.
-2.  Upload `normal_traffic.csv` (located in the `processed_data/` directory) and select **Training** as the category.
-3.  Upload `dos_attack.csv`, `fuzzy_attack.csv`, and `impersonation_attack.csv` and select **Testing** as the category.
-
-### Step 3: Configure the Impulse
-1.  Go to **Create Impulse**.
-2.  Add a **Time Series Data** block. Set the window size to `100` (representing 10 samples of 10ms intervals) and window increase to `10`.
-3.  Add a **Flatten** processing block (extracts statistical features like mean, std, min, max, rms, etc.).
-4.  Add an **Anomaly Detection (K-Means)** learning block.
-5.  Click **Save Impulse**.
-
-### Step 4: Feature Extraction & Training
-1.  Go to the **Flatten** tab, click **Save parameters**, then click **Generate features**.
-2.  Go to the **Anomaly Detection** tab.
-3.  Select the training features, set the number of clusters (e.g. `32`), and click **Start training**.
-4.  Once trained, check the Anomaly Score threshold (default `0.30`) and verify classification performance.
-
-### Step 5: Export C++ Library
-1.  Go to the **Deployment** tab.
-2.  Under "Search deployment options", select **C++ Library** (do not select a specific board).
-3.  Click **Build** to download a `.zip` package.
-
----
-
-## 4. Deploying & Simulating in Wokwi (STM32)
-1.  Open [Wokwi](https://wokwi.com/) in your browser.
-2.  Select **STM32 Nucleo-C031C6** (or create a new C++ project).
-3.  **Import Files:**
-    *   Copy the contents of `main.cpp` into Wokwi's `main.cpp`.
-    *   Copy the contents of `diagram.json` into Wokwi's `diagram.json`.
-    *   Create a new file in Wokwi named `test_buffers.h` and copy the contents of `test_buffers.h` into it.
-4.  **Integration of Real Model:**
-    *   Unzip the C++ library download from Edge Impulse.
-    *   Upload the contents of the `edge-impulse-sdk` folder and the `model-parameters` folder directly into the Wokwi project directory.
-    *   Delete the mock `edge-impulse-sdk` files.
-5.  **Simulation & Alerting:**
-    *   Click **Start Simulation** in Wokwi.
-    *   Open the serial monitor to see the output logs.
-    *   To test different attacks, modify the active buffer selector lines in Wokwi's `main.cpp` (uncomment the attack buffer you want to feed to the network).
-    *   Watch the red external LED light up when an intrusion is detected!
+3.  This runs a sequential loop simulating 10 steps of Normal Traffic followed by 10 steps of DoS Attack, logging outputs directly to the console.

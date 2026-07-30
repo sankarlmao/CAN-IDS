@@ -13,8 +13,8 @@
     {
       "type": "wokwi-led",
       "id": "led_alert",
-      "top": -120,
-      "left": 120,
+      "top": -150,
+      "left": 150,
       "attrs": {
         "color": "red",
         "label": "ALERT"
@@ -23,17 +23,81 @@
     {
       "type": "wokwi-resistor",
       "id": "r_led",
-      "top": -80,
-      "left": 120,
+      "top": -110,
+      "left": 150,
       "attrs": {
         "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-ssd1306",
+      "id": "oled",
+      "top": -250,
+      "left": -100,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_normal",
+      "top": 200,
+      "left": -150,
+      "attrs": {
+        "color": "green",
+        "label": "NORMAL"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_dos",
+      "top": 200,
+      "left": -50,
+      "attrs": {
+        "color": "red",
+        "label": "DoS"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_fuzzy",
+      "top": 200,
+      "left": 50,
+      "attrs": {
+        "color": "blue",
+        "label": "FUZZY"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_impersonation",
+      "top": 200,
+      "left": 150,
+      "attrs": {
+        "color": "yellow",
+        "label": "IMPRSN"
       }
     }
   ],
   "connections": [
     [ "nucleo:PA5", "r_led:1", "green", [ "h0" ] ],
     [ "r_led:2", "led_alert:A", "green", [ "h0" ] ],
-    [ "nucleo:GND.8", "led_alert:C", "black", [ "h0" ] ]
+    [ "nucleo:GND.8", "led_alert:C", "black", [ "h0" ] ],
+    
+    [ "nucleo:GND.9", "oled:GND", "black", [ "v0" ] ],
+    [ "nucleo:3V3", "oled:VCC", "red", [ "v0" ] ],
+    [ "nucleo:A5", "oled:SCL", "yellow", [ "v0" ] ],
+    [ "nucleo:A4", "oled:SDA", "blue", [ "v0" ] ],
+    
+    [ "btn_normal:2.g", "nucleo:GND.1", "black", [ "v0" ] ],
+    [ "btn_normal:1.a", "nucleo:D2", "green", [ "v0" ] ],
+    
+    [ "btn_dos:2.g", "nucleo:GND.1", "black", [ "v0" ] ],
+    [ "btn_dos:1.a", "nucleo:D3", "red", [ "v0" ] ],
+    
+    [ "btn_fuzzy:2.g", "nucleo:GND.1", "black", [ "v0" ] ],
+    [ "btn_fuzzy:1.a", "nucleo:D4", "blue", [ "v0" ] ],
+    
+    [ "btn_impersonation:2.g", "nucleo:GND.1", "black", [ "v0" ] ],
+    [ "btn_impersonation:1.a", "nucleo:D5", "yellow", [ "v0" ] ]
   ],
   "dependencies": {}
 }
