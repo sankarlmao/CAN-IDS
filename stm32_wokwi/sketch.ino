@@ -1,8 +1,8 @@
 #ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiWire.h"
 #else
 #include <stdio.h>
 #include <unistd.h>
@@ -41,39 +41,29 @@ struct MockSerial {
 };
 static MockSerial Serial;
 
-#define SSD1306_SWITCHCAPVCC 0x2
-#define SSD1306_WHITE 1
-#define SSD1306_BLACK 0
-
-struct Adafruit_SSD1306 {
-    Adafruit_SSD1306(int w, int h, void* wire, int rst) {}
-    inline bool begin(int type, int addr) { return true; }
-    inline void clearDisplay() {}
-    inline void setTextSize(int s) {}
-    inline void setTextColor(int c) {}
-    inline void setTextColor(int c, int bg) {}
-    inline void setCursor(int x, int y) {}
+struct SSD1306AsciiWire {
+    inline void begin(const void* dev, int addr) {}
+    inline void setFont(const void* font) {}
+    inline void clear() {}
+    inline void setCursor(int col, int row) {}
     inline void print(const char* s) {}
     inline void print(int val) {}
     inline void print(double val, int dec = 2) {}
     inline void println(const char* s) {}
     inline void println(int val) {}
     inline void println(double val, int dec = 2) {}
-    inline void display() {}
-    inline void drawRect(int x, int y, int w, int h, int c) {}
-    inline void fillRect(int x, int y, int w, int h, int c) {}
-    inline void drawFastHLine(int x, int y, int w, int c) {}
 };
-static void* Wire = NULL;
+static SSD1306AsciiWire display;
+static const void* Adafruit128x64 = NULL;
+static const void* System5x7 = NULL;
 #endif
 
 #include "test_buffers.h"
 #include "ei_run_classifier.h"
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET    -1
-static Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#ifdef ARDUINO
+static SSD1306AsciiWire display;
+#endif
 
 // Global variables for active buffer stream
 static const float* g_active_buffer = NULL;
@@ -107,24 +97,20 @@ void setup() {
     
     digitalWrite(PA5, LOW);
     
-    // Initialize OLED display (I2C address 0x3C is standard)
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-        Serial.println("SSD1306 OLED initialization failed!");
-        for (;;);
-    }
+    // Initialize OLED display using SSD1306Ascii (very light)
+#ifdef ARDUINO
+    Wire.begin();
+    Wire.setClock(400000L);
+    display.begin(&Adafruit128x64, 0x3C);
+    display.setFont(System5x7);
+#endif
     
-    // Show splash screen
-    display.clearDisplay();
-    display.setTextSize(2);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(20, 10);
-    display.println("CAN-IDS");
-    display.setTextSize(1);
-    display.setCursor(15, 38);
-    display.println("Intrusion Detection");
-    display.setCursor(15, 50);
-    display.println("TinyML Simulator");
-    display.display();
+    display.clear();
+    display.println("=====================");
+    display.println("    CAN-IDS DEMO     ");
+    display.println("=====================");
+    display.println("TinyML Anomaly Det.");
+    display.println("OLED Monitor Active");
     delay(2000);
     
     // Default to Normal Traffic
@@ -176,44 +162,45 @@ void loop() {
     
     // Run classifier
     ei_impulse_result_t result = { 0 };
-    EI_IMPULSE_ERROR res = run_classifier(&features_signal, &result, false);
+    run_classifier(&features_signal, &result, false);
     
     float current_val = 0.0f;
     raw_feature_get_data(EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE - 1, 1, &current_val);
     
     // Draw OLED Interface
-    display.clearDisplay();
+    display.clear();
     
-    // Header line
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
     display.print("STREAM: ");
-    display.print(g_buffer_name);
-    display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+    display.println(g_buffer_name);
+    display.println("---------------------");
     
-    // Detailed stats
-    display.setCursor(0, 13);
     display.print("Byte 6 (Val): ");
-    display.print(current_val, 1);
+    display.println(current_val, 1);
     
-    display.setCursor(0, 24);
     display.print("Anomaly Score: ");
-    display.print(result.anomaly, 3);
+    display.println(result.anomaly, 3);
     
-    // Draw Anomaly score bar graph
-    display.drawRect(0, 35, 128, 7, SSD1306_WHITE);
-    int bar_width = (int)(result.anomaly * 126.0f);
-    if (bar_width > 126) bar_width = 126;
-    if (bar_width < 0) bar_width = 0;
-    display.fillRect(1, 36, bar_width, 5, SSD1306_WHITE);
+    // Draw Textual Anomaly progress bar
+    display.print("[");
+    int progress_chars = (int)(result.anomaly * 16.0f);
+    if (progress_chars > 16) progress_chars = 16;
+    if (progress_chars < 0) progress_chars = 0;
+    for (int i = 0; i < 16; ++i) {
+        if (i < progress_chars) {
+            display.print("=");
+        } else {
+            display.print(" ");
+        }
+    }
+    display.println("]");
+    display.println("---------------------");
     
     // Status text and Alert toggle
+    display.setCursor(0, 7);
     if (result.anomaly > 0.30f) {
         digitalWrite(PA5, HIGH); // Alert LED ON
-        display.setCursor(0, 48);
-        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Inverted text for alert visibility
-        display.print(" !!! INTRUSION ALERT !!! ");
+        display.print("!!! INTRUSION ALERT !!!");
         
         Serial.print("Offset: ");
         Serial.print((int)g_global_offset);
@@ -222,8 +209,6 @@ void loop() {
         Serial.println(" -> [ALERT] INTRUSION!");
     } else {
         digitalWrite(PA5, LOW); // Alert LED OFF
-        display.setCursor(0, 48);
-        display.setTextColor(SSD1306_WHITE);
         display.print("STATUS: SECURE [OK]");
         
         Serial.print("Offset: ");
@@ -232,8 +217,6 @@ void loop() {
         Serial.print(result.anomaly, 3);
         Serial.println(" -> [OK]");
     }
-    
-    display.display();
     
     // Slide window
     g_global_offset++;
