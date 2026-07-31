@@ -39,7 +39,7 @@ In Wokwi Arduino projects, all files must be placed flatly in the root directory
     *   Replace Wokwi's `diagram.json` contents with the contents of your local `diagram.json`.
 4.  **Library Manager**:
     *   Click on Wokwi's **Library Manager** (the book icon on the left sidebar).
-    *   Search and add **Adafruit SSD1306** and **Adafruit GFX Library**.
+    *   Search and add **SSD1306Ascii**.
 5.  **Run & Interact**:
     *   Click the green **Start Simulation** button.
     *   Press the buttons (Green, Red, Blue, Yellow) to switch between different CAN streams.
