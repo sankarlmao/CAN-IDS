@@ -13,7 +13,8 @@
 #define LOW 0x0
 #define HIGH 0x1
 
-#define PA5 5
+#define D0 0
+#define D1 1
 #define D2 2
 #define D3 3
 #define D4 4
@@ -24,16 +25,18 @@
 #define D9 9
 #define D10 10
 #define D11 11
-#define D12 12
 #define D13 13
 #define A0 14
+#define A1 15
+#define A2 16
+#define A3 17
+#define A4 18
 
 inline void pinMode(int pin, int mode) { (void)pin; (void)mode; }
 inline void digitalWrite(int pin, int val) { (void)pin; (void)val; }
 inline int digitalRead(int pin) { (void)pin; return HIGH; }
 inline void delay(int ms) { usleep(ms * 1000); }
 inline void delayMicroseconds(unsigned int us) { usleep(us); }
-inline unsigned long millis() { return 0; }
 
 struct MockSerial {
     void begin(int baud) { (void)baud; }
@@ -60,21 +63,16 @@ static MockSerial Serial;
 #define PIN_BUZZER_ALARM     D7   // Warning Siren
 #define PIN_RELAY_GATEWAY    D8   // Hardware CAN Bus Isolation Switch
 
-// Tri-Color Status Indicator LEDs
+// Dual Status Indicator LEDs
 #define PIN_LED_SAFE_GREEN   D9   // Green Status LED: System Safe & Normal
-#define PIN_LED_HOLD_YELLOW  D12  // Yellow Status LED: Limp-Home Safety Hold
 #define PIN_LED_ALERT_RED    D13  // Red Status LED: Intrusion Threat Lock
 
-// CAN Bus Saturation Bar Graph Pins
-#define PIN_BAR_1            D6   // 25% Load Segment
-#define PIN_BAR_2            D10  // 50% Load Segment
-#define PIN_BAR_3            D11  // 75% Load Segment
-#define PIN_BAR_4            A0   // 100% DoS Saturation Segment
+// 10-LED CAN Bus Saturation Bar Graph Pins
+static const uint8_t g_bar_pins[10] = { D0, D1, D6, D10, D11, A0, A1, A2, A3, A4 };
 
 // Global variables for active stream state
 static uint8_t g_mode = 1; // 1: Normal, 2: DoS, 3: Fuzzy, 4: Impersonation
 static size_t g_global_offset = 0;
-static unsigned long g_last_threat_ms = 0;
 
 // Ultra-lightweight 5x7 Font bitmap data (space through uppercase 'Z')
 static const uint8_t font5x7_basic[] = {
@@ -340,23 +338,15 @@ static void buzzer_pulse(uint16_t freq_hz, uint16_t duration_ms) {
 #endif
 }
 
-// Update CAN Bus Saturation Bar Graph LEDs
+// Update 10-LED CAN Bus Saturation Bar Graph
 static void update_bus_bar_graph(uint8_t mode) {
-    if (mode == 2) { // DoS Attack (100% Saturation)
-        digitalWrite(PIN_BAR_1, HIGH);
-        digitalWrite(PIN_BAR_2, HIGH);
-        digitalWrite(PIN_BAR_3, HIGH);
-        digitalWrite(PIN_BAR_4, HIGH);
-    } else if (mode == 3 || mode == 4) { // Fuzzy / Impersonation (75% Load)
-        digitalWrite(PIN_BAR_1, HIGH);
-        digitalWrite(PIN_BAR_2, HIGH);
-        digitalWrite(PIN_BAR_3, HIGH);
-        digitalWrite(PIN_BAR_4, LOW);
-    } else { // Normal Traffic (35-50% Load)
-        digitalWrite(PIN_BAR_1, HIGH);
-        digitalWrite(PIN_BAR_2, HIGH);
-        digitalWrite(PIN_BAR_3, LOW);
-        digitalWrite(PIN_BAR_4, LOW);
+    uint8_t lit_bars = 3; // Default 30% load for Normal
+    if (mode == 2) lit_bars = 10;      // DoS Attack: 100% Saturation (10 bars)
+    else if (mode == 3) lit_bars = 7;  // Fuzzy Attack: 70% Load (7 bars)
+    else if (mode == 4) lit_bars = 5;  // Impersonation: 50% Load (5 bars)
+
+    for (uint8_t i = 0; i < 10; i++) {
+        digitalWrite(g_bar_pins[i], (i < lit_bars) ? HIGH : LOW);
     }
 }
 
@@ -372,20 +362,16 @@ void setup() {
     digitalWrite(PIN_BUZZER_ALARM, LOW);
     pinMode(PIN_RELAY_GATEWAY, OUTPUT);
     
-    // Configure Tri-Color LEDs
+    // Configure Indicator LEDs
     pinMode(PIN_LED_ALERT_RED, OUTPUT);
     pinMode(PIN_LED_SAFE_GREEN, OUTPUT);
-    pinMode(PIN_LED_HOLD_YELLOW, OUTPUT);
-    
     digitalWrite(PIN_LED_ALERT_RED, LOW);
-    digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
-    digitalWrite(PIN_LED_SAFE_GREEN, HIGH); // Default Green Safe ON
+    digitalWrite(PIN_LED_SAFE_GREEN, HIGH); // Green Safe ON by default
     
-    // Configure Bar Graph Pins
-    pinMode(PIN_BAR_1, OUTPUT);
-    pinMode(PIN_BAR_2, OUTPUT);
-    pinMode(PIN_BAR_3, OUTPUT);
-    pinMode(PIN_BAR_4, OUTPUT);
+    // Configure 10-LED Bar Graph Pins
+    for (uint8_t i = 0; i < 10; i++) {
+        pinMode(g_bar_pins[i], OUTPUT);
+    }
     update_bus_bar_graph(1);
     
     digitalWrite(PIN_RELAY_GATEWAY, HIGH);
@@ -426,54 +412,22 @@ void loop() {
     float current_val = get_can_sample(g_mode, g_global_offset + EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE - 1);
     bool is_intrusion = (result.anomaly > 0.30f);
 
-    // Update Bus Saturation Bar Graph
+    // Update 10-LED Bus Saturation Bar Graph
     update_bus_bar_graph(g_mode);
 
-    // Automotive Safety State Machine (Red Alert vs Yellow Safety Hold vs Green Safe)
-    const char* led_state_str = "SAFE";
-    
     if (is_intrusion) {
-#ifdef ARDUINO
-        g_last_threat_ms = millis();
-#endif
         digitalWrite(PIN_RELAY_GATEWAY, LOW); // Cut Relay
-        
-        // Red LED ON, Green/Yellow OFF
         digitalWrite(PIN_LED_ALERT_RED, HIGH);
         digitalWrite(PIN_LED_SAFE_GREEN, LOW);
-        digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
-        led_state_str = "ALERT";
 
         if (g_mode == 2) buzzer_pulse(1200, 60);
         else if (g_mode == 3) buzzer_pulse(2000, 60);
         else buzzer_pulse(1600, 60);
     } else {
+        digitalWrite(PIN_RELAY_GATEWAY, HIGH); // Restore Relay
+        digitalWrite(PIN_LED_SAFE_GREEN, HIGH);
+        digitalWrite(PIN_LED_ALERT_RED, LOW);
         digitalWrite(PIN_BUZZER_ALARM, LOW);
-        
-        // Check 3-second Limp-Home Safety Hold
-#ifdef ARDUINO
-        bool in_safety_hold = (g_last_threat_ms > 0) && (millis() - g_last_threat_ms < 3000);
-#else
-        bool in_safety_hold = false;
-#endif
-
-        if (in_safety_hold) {
-            digitalWrite(PIN_RELAY_GATEWAY, LOW); // Hold Relay open during safety check
-            
-            // Yellow LED ON, Red/Green OFF
-            digitalWrite(PIN_LED_HOLD_YELLOW, HIGH);
-            digitalWrite(PIN_LED_ALERT_RED, LOW);
-            digitalWrite(PIN_LED_SAFE_GREEN, LOW);
-            led_state_str = "HOLD";
-        } else {
-            digitalWrite(PIN_RELAY_GATEWAY, HIGH); // Restore Normal CAN Bus Relay
-            
-            // Green LED ON, Red/Yellow OFF
-            digitalWrite(PIN_LED_SAFE_GREEN, HIGH);
-            digitalWrite(PIN_LED_ALERT_RED, LOW);
-            digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
-            led_state_str = "SAFE";
-        }
     }
 
     oled_invert(is_intrusion && ((g_global_offset % 2) == 0));
@@ -489,21 +443,15 @@ void loop() {
     oled_write_anom(result.anomaly, 96, 2);
     
     oled_write_str("STATUS:", 0, 4);
-    if (is_intrusion) {
-        oled_write_str("ALERT LOCKOUT", 48, 4);
-    } else if (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000)) {
-        oled_write_str("SAFETY HOLD", 48, 4);
-    } else {
-        oled_write_str("NORMAL DRIVE", 48, 4);
-    }
+    oled_write_str(is_intrusion ? "ALERT LOCKOUT" : "NORMAL DRIVE", 48, 4);
     
     oled_write_str("BUS:", 0, 5);
-    oled_write_str(is_intrusion ? "ISOLATED" : (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000) ? "HOLD CUT" : "CONNECTED"), 30, 5);
+    oled_write_str(is_intrusion ? "ISOLATED" : "CONNECTED", 30, 5);
     
-    oled_write_str(is_intrusion ? "! INTRUSION DETECTED !" : (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000) ? "LIMP-HOME SAFETY RECOVERY" : "STATUS: SECURE [OK]"), 0, 7);
+    oled_write_str(is_intrusion ? "! INTRUSION DETECTED !" : "STATUS: SECURE [OK]", 0, 7);
     
     // Output Structured JSON Telemetry Packet over Serial (For Web Dashboard / Wokwi Bridge)
-    uint8_t load_pct = (g_mode == 2) ? 100 : ((g_mode == 3 || g_mode == 4) ? 75 : 35);
+    uint8_t load_pct = (g_mode == 2) ? 100 : ((g_mode == 3) ? 70 : ((g_mode == 4) ? 50 : 30));
     Serial.print("TELEMETRY_JSON:{\"stream\":\"");
     Serial.print(get_mode_name(g_mode));
     Serial.print("\",\"offset\":");
@@ -519,7 +467,7 @@ void loop() {
     Serial.print(",\"relay\":");
     Serial.print(is_intrusion ? 0 : 1);
     Serial.print(",\"status\":\"");
-    Serial.print(led_state_str);
+    Serial.print(is_intrusion ? "ALERT" : "SECURE");
     Serial.println("\"}");
 
     g_global_offset++;

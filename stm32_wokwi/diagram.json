@@ -96,22 +96,12 @@
       }
     },
     {
-      "type": "wokwi-led",
-      "id": "hold_led",
-      "top": -120,
-      "left": 60,
-      "attrs": {
-        "color": "yellow",
-        "label": "YELLOW HOLD LED"
-      }
-    },
-    {
       "type": "wokwi-led-bar-graph",
       "id": "bus_bar_graph",
       "top": 160,
       "left": 240,
       "attrs": {
-        "label": "CAN BUS SATURATION BAR"
+        "label": "CAN BUS SATURATION BAR (10 LEDs)"
       }
     }
   ],
@@ -121,9 +111,6 @@
 
     [ "nucleo:D9", "safe_led:A", "green", [ "h0" ] ],
     [ "safe_led:K", "nucleo:GND.4", "black", [ "h0" ] ],
-
-    [ "nucleo:D12", "hold_led:A", "yellow", [ "h0" ] ],
-    [ "hold_led:K", "nucleo:GND.4", "black", [ "h0" ] ],
 
     [ "nucleo:GND.9", "oled:GND", "black", [ "v0" ] ],
     [ "nucleo:3V3", "oled:VCC", "red", [ "v0" ] ],
@@ -137,15 +124,27 @@
     [ "nucleo:5V", "bus_relay:VCC", "red", [ "h0" ] ],
     [ "nucleo:GND.4", "bus_relay:GND", "black", [ "h0" ] ],
 
-    [ "nucleo:D6", "bus_bar_graph:i1", "green", [ "h0" ] ],
-    [ "nucleo:D10", "bus_bar_graph:i2", "green", [ "h0" ] ],
-    [ "nucleo:D11", "bus_bar_graph:i3", "orange", [ "h0" ] ],
-    [ "nucleo:A0", "bus_bar_graph:i4", "red", [ "h0" ] ],
+    [ "nucleo:D0", "bus_bar_graph:i1", "green", [ "h0" ] ],
+    [ "nucleo:D1", "bus_bar_graph:i2", "green", [ "h0" ] ],
+    [ "nucleo:D6", "bus_bar_graph:i3", "green", [ "h0" ] ],
+    [ "nucleo:D10", "bus_bar_graph:i4", "yellow", [ "h0" ] ],
+    [ "nucleo:D11", "bus_bar_graph:i5", "yellow", [ "h0" ] ],
+    [ "nucleo:A0", "bus_bar_graph:i6", "orange", [ "h0" ] ],
+    [ "nucleo:A1", "bus_bar_graph:i7", "orange", [ "h0" ] ],
+    [ "nucleo:A2", "bus_bar_graph:i8", "red", [ "h0" ] ],
+    [ "nucleo:A3", "bus_bar_graph:i9", "red", [ "h0" ] ],
+    [ "nucleo:A4", "bus_bar_graph:i10", "red", [ "h0" ] ],
 
     [ "bus_bar_graph:c1", "nucleo:GND.4", "black", [ "h0" ] ],
     [ "bus_bar_graph:c2", "nucleo:GND.4", "black", [ "h0" ] ],
     [ "bus_bar_graph:c3", "nucleo:GND.4", "black", [ "h0" ] ],
     [ "bus_bar_graph:c4", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c5", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c6", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c7", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c8", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c9", "nucleo:GND.4", "black", [ "h0" ] ],
+    [ "bus_bar_graph:c10", "nucleo:GND.4", "black", [ "h0" ] ],
 
     [ "btn_normal:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_normal:1.l", "nucleo:D2", "green", [ "v0" ] ],
