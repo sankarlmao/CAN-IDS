@@ -13,8 +13,6 @@
 #define LOW 0x0
 #define HIGH 0x1
 
-#define D0 0
-#define D1 1
 #define D2 2
 #define D3 3
 #define D4 4
@@ -25,12 +23,14 @@
 #define D9 9
 #define D10 10
 #define D11 11
+#define D12 12
 #define D13 13
 #define A0 14
 #define A1 15
 #define A2 16
 #define A3 17
 #define A4 18
+#define A5 19
 
 inline void pinMode(int pin, int mode) { (void)pin; (void)mode; }
 inline void digitalWrite(int pin, int val) { (void)pin; (void)val; }
@@ -67,8 +67,8 @@ static MockSerial Serial;
 #define PIN_LED_SAFE_GREEN   D9   // Green Status LED: System Safe & Normal
 #define PIN_LED_ALERT_RED    D13  // Red Status LED: Intrusion Threat Lock
 
-// 10-LED CAN Bus Saturation Bar Graph Pins
-static const uint8_t g_bar_pins[10] = { D0, D1, D6, D10, D11, A0, A1, A2, A3, A4 };
+// 10-LED CAN Bus Saturation Bar Graph Pins (Non-conflicting D6, D10-D12, A0-A5)
+static const uint8_t g_bar_pins[10] = { D6, D10, D11, D12, A0, A1, A2, A3, A4, A5 };
 
 // Global variables for active stream state
 static uint8_t g_mode = 1; // 1: Normal, 2: DoS, 3: Fuzzy, 4: Impersonation
@@ -368,7 +368,7 @@ void setup() {
     digitalWrite(PIN_LED_ALERT_RED, LOW);
     digitalWrite(PIN_LED_SAFE_GREEN, HIGH); // Green Safe ON by default
     
-    // Configure 10-LED Bar Graph Pins
+    // Configure 10-LED Bar Graph Pins (D6, D10-D12, A0-A5)
     for (uint8_t i = 0; i < 10; i++) {
         pinMode(g_bar_pins[i], OUTPUT);
     }
