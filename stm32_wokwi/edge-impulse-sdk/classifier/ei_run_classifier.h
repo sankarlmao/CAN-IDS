@@ -2,8 +2,17 @@
 #define EI_RUN_CLASSIFIER_H
 
 #include <stddef.h>
-#include <string.h>
-#include <math.h>
+#include <stdint.h>
+
+// Ultra-fast, zero-dependency Newton-Raphson square root to avoid linking libm.a
+static inline float fast_sqrtf(float val) {
+    if (val <= 0.0f) return 0.0f;
+    float x = val;
+    for (int i = 0; i < 6; ++i) {
+        x = 0.5f * (x + val / x);
+    }
+    return x;
+}
 
 #define EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE 10
 
@@ -27,6 +36,7 @@ typedef enum {
 
 // Mock K-Means classifier function using a Normal Behavior Bounding Box
 inline EI_IMPULSE_ERROR run_classifier(signal_t *signal, ei_impulse_result_t *result, bool debug = false) {
+    (void)debug;
     if (!signal || !signal->get_data || !result) {
         return EI_IMPULSE_ERROR_FAILED;
     }
@@ -53,7 +63,7 @@ inline EI_IMPULSE_ERROR run_classifier(signal_t *signal, ei_impulse_result_t *re
     for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; ++i) {
         variance_sum += (window[i] - mean) * (window[i] - mean);
     }
-    float std_dev = sqrt(variance_sum / EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
+    float std_dev = fast_sqrtf(variance_sum / (float)EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
     
     // Check deviation from Normal Bounding Box
     // In normal Kia Soul CAN traffic, the steering/engine values stay within [93.0, 99.5]
@@ -71,7 +81,7 @@ inline EI_IMPULSE_ERROR run_classifier(signal_t *signal, ei_impulse_result_t *re
     }
     
     // Weighted Euclidean distance from normal behavior space
-    float distance = sqrt((diff_mean * diff_mean * 1.5f) + (diff_std * diff_std * 3.0f));
+    float distance = fast_sqrtf((diff_mean * diff_mean * 1.5f) + (diff_std * diff_std * 3.0f));
     
     // Determine anomaly score (threshold is 0.30)
     float anomaly_score = 0.0f;

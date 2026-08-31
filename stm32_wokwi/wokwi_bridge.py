@@ -13,9 +13,14 @@ import socketserver
 import threading
 import argparse
 
+import os
+
 # Default Configuration
 WEB_PORT = 8080
 WS_PORT = 8765
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+WEB_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "web_dashboard"))
 
 telemetry_subscribers = set()
 current_mcu_state = {
@@ -33,7 +38,7 @@ def log(msg):
 
 class WebServerHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory="../web_dashboard", **kwargs)
+        super().__init__(*args, directory=WEB_DIR, **kwargs)
 
 def start_web_server(port):
     with socketserver.TCPServer(("", port), WebServerHandler) as httpd:

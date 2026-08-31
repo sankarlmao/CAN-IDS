@@ -18,15 +18,6 @@
       "attrs": {}
     },
     {
-      "type": "wokwi-servo",
-      "id": "brake_servo",
-      "top": -260,
-      "left": 120,
-      "attrs": {
-        "label": "SAFE-STOP BRAKE ACTUATOR"
-      }
-    },
-    {
       "type": "wokwi-buzzer",
       "id": "alarm_buzzer",
       "top": -120,
@@ -83,17 +74,25 @@
         "color": "yellow",
         "label": "IMPRSN"
       }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "alert_led",
+      "top": -120,
+      "left": 120,
+      "attrs": {
+        "color": "red",
+        "label": "INTRUSION ALERT LED"
+      }
     }
   ],
   "connections": [
+    [ "nucleo:D13", "alert_led:A", "red", [ "h0" ] ],
+    [ "alert_led:K", "nucleo:GND.4", "black", [ "h0" ] ],
     [ "nucleo:GND.9", "oled:GND", "black", [ "v0" ] ],
     [ "nucleo:3V3", "oled:VCC", "red", [ "v0" ] ],
     [ "nucleo:D15", "oled:SCL", "yellow", [ "v0" ] ],
     [ "nucleo:D14", "oled:SDA", "blue", [ "v0" ] ],
-
-    [ "nucleo:D6", "brake_servo:PWM", "orange", [ "h0" ] ],
-    [ "nucleo:5V", "brake_servo:V+", "red", [ "h0" ] ],
-    [ "nucleo:GND.2", "brake_servo:GND", "black", [ "h0" ] ],
 
     [ "nucleo:D7", "alarm_buzzer:1", "purple", [ "h0" ] ],
     [ "nucleo:GND.3", "alarm_buzzer:2", "black", [ "h0" ] ],

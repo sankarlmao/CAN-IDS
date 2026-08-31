@@ -60,11 +60,8 @@ Copy and paste the repository files into Wokwi:
 | `test_buffers.h` | Create new file `test_buffers.h` and paste from `stm32_wokwi/test_buffers.h` |
 | `ei_run_classifier.h` | Create new file `ei_run_classifier.h` and paste from `stm32_wokwi/edge-impulse-sdk/classifier/ei_run_classifier.h` |
 
-### Step 3: Install Required Libraries in Wokwi
-1. Click the Library Manager tab (book icon on the left toolbar in Wokwi).
-2. Search and click to install:
-   - `SSD1306Ascii`
-   - `Servo`
+### Step 3: Libraries Configuration
+Zero external library dependencies are required! `sketch.ino` includes an ultra-compact direct I2C OLED driver and zero-timer buzzer pulse routine to fit comfortably within the 32 KB STM32 Flash boundary. Leave `libraries.txt` empty.
 
 ### Step 4: Run the Hardware Simulation
 1. Click the green Start Simulation play button.

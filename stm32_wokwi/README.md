@@ -44,7 +44,7 @@ The system supports 1:1 Live Telemetry Synchronization with the HTML5 Web CSOC D
 3. Copy `sketch.ino` into Wokwi's `sketch.ino`.
 4. Create `test_buffers.h` in Wokwi and paste the contents from `test_buffers.h`.
 5. Create `ei_run_classifier.h` in Wokwi and paste the contents from `edge-impulse-sdk/classifier/ei_run_classifier.h`.
-6. In Wokwi Library Manager (book icon), search and install SSD1306Ascii and Servo.
+6. Ensure `libraries.txt` has no external dependencies.
 7. Click Start Simulation.
 
 ---

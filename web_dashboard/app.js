@@ -119,6 +119,9 @@ if (btnConnectSerial) {
       }
     } catch (err) {
       console.error('Serial Error:', err);
+      if (err.name !== 'AbortError') {
+        alert('No hardware USB/Serial port selected or available.\n\n• If using Physical STM32: Plug the board into USB.\n• If using Wokwi Browser: Wokwi displays serial output directly in its Serial Monitor panel.\n• Web Dashboard mode: Use the left Scenario buttons to test all attack defenses live!');
+      }
       btnConnectSerial.textContent = 'Connect Wokwi Serial';
       btnConnectSerial.style.background = 'rgba(255, 255, 255, 0.05)';
       isSerialConnected = false;

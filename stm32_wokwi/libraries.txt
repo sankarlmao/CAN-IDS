@@ -1,0 +1,2 @@
+# CAN-IDS Failsafe SSD1306 & TinyML Driver
+# Zero external library dependencies required for ultra-compact STM32 Flash footprint
