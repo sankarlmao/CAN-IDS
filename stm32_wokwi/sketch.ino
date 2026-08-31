@@ -67,7 +67,7 @@ static MockSerial Serial;
 #define PIN_LED_SAFE_GREEN   D9   // Green Status LED: System Safe & Normal
 #define PIN_LED_ALERT_RED    D13  // Red Status LED: Intrusion Threat Lock
 
-// 10-LED CAN Bus Saturation Bar Graph Pins (Non-conflicting D6, D10-D12, A0-A5)
+// 10-LED CAN Bus Saturation Bar Graph Pins (D6, D10-D12, A0-A5)
 static const uint8_t g_bar_pins[10] = { D6, D10, D11, D12, A0, A1, A2, A3, A4, A5 };
 
 // Global variables for active stream state
@@ -212,11 +212,63 @@ static void oled_write_char(char c, uint8_t col, uint8_t row) {
     Wire.endTransmission();
 }
 
+// 2x Scaled Double-Height & Double-Width Large Font Renderer (10x14 px)
+static void oled_write_char_2x(char c, uint8_t col, uint8_t row) {
+    char u = c;
+    if (u >= 'a' && u <= 'z') u = u - 'a' + 'A';
+    uint16_t idx = 0;
+    if (u >= 0x20 && u <= 0x5D) idx = (u - 0x20) * 5;
+    else if (u == '|') idx = (0x5E - 0x20) * 5;
+
+    // Top 8 vertical pixels
+    oled_set_cursor(col, row);
+    Wire.beginTransmission(0x3C);
+    Wire.write(0x40);
+    for (uint8_t i = 0; i < 5; i++) {
+        uint8_t b = font5x7_basic[idx + i];
+        uint8_t top_bits = 0;
+        if (b & 0x01) top_bits |= 0x03;
+        if (b & 0x02) top_bits |= 0x0C;
+        if (b & 0x04) top_bits |= 0x30;
+        if (b & 0x08) top_bits |= 0xC0;
+        Wire.write(top_bits);
+        Wire.write(top_bits); // 2x horizontal stretch
+    }
+    Wire.write(0x00); Wire.write(0x00);
+    Wire.endTransmission();
+
+    // Bottom 8 vertical pixels
+    oled_set_cursor(col, row + 1);
+    Wire.beginTransmission(0x3C);
+    Wire.write(0x40);
+    for (uint8_t i = 0; i < 5; i++) {
+        uint8_t b = font5x7_basic[idx + i];
+        uint8_t bot_bits = 0;
+        if (b & 0x10) bot_bits |= 0x03;
+        if (b & 0x20) bot_bits |= 0x0C;
+        if (b & 0x40) bot_bits |= 0x30;
+        if (b & 0x80) bot_bits |= 0xC0;
+        Wire.write(bot_bits);
+        Wire.write(bot_bits); // 2x horizontal stretch
+    }
+    Wire.write(0x00); Wire.write(0x00);
+    Wire.endTransmission();
+}
+
 static void oled_write_str(const char* str, uint8_t col, uint8_t row) {
     uint8_t curr_col = col;
     while (*str && curr_col < 122) {
         oled_write_char(*str, curr_col, row);
         curr_col += 6;
+        str++;
+    }
+}
+
+static void oled_write_str_2x(const char* str, uint8_t col, uint8_t row) {
+    uint8_t curr_col = col;
+    while (*str && curr_col < 116) {
+        oled_write_char_2x(*str, curr_col, row);
+        curr_col += 12;
         str++;
     }
 }
@@ -269,6 +321,7 @@ static void oled_init() {}
 static void oled_clear() {}
 static void oled_invert(bool inv) { (void)inv; }
 static void oled_write_str(const char* str, uint8_t col, uint8_t row) { (void)str; (void)col; (void)row; }
+static void oled_write_str_2x(const char* str, uint8_t col, uint8_t row) { (void)str; (void)col; (void)row; }
 static void oled_write_val1(float val, uint8_t col, uint8_t row) { (void)val; (void)col; (void)row; }
 static void oled_write_anom(float val, uint8_t col, uint8_t row) { (void)val; (void)col; (void)row; }
 #endif
@@ -378,8 +431,8 @@ void setup() {
     
     oled_init();
     oled_clear();
-    oled_write_str("CAN-IDS FAILSAFE", 0, 0);
-    oled_write_str("TINYML ACTIVE", 0, 2);
+    oled_write_str_2x("CAN-IDS", 24, 1);
+    oled_write_str("TINYML FAILSAFE ACTIVE", 0, 4);
     delay(1000);
     
     g_mode = 1;
@@ -433,22 +486,26 @@ void loop() {
     oled_invert(is_intrusion && ((g_global_offset % 2) == 0));
     oled_clear();
     
-    oled_write_str("STREAM:", 0, 0);
-    oled_write_str(get_mode_name(g_mode), 48, 0);
+    // Header Banner: 2X Big Scale Typography
+    if (is_intrusion) {
+        oled_write_str_2x("! INTRUSION !", 0, 0);
+    } else {
+        oled_write_str_2x("CAN-IDS OK", 8, 0);
+    }
+
+    // High-visibility Telemetry Stats
+    oled_write_str("BUS:", 0, 3);
+    oled_write_str(get_mode_name(g_mode), 30, 3);
     
-    oled_write_str("VAL:", 0, 2);
-    oled_write_val1(current_val, 30, 2);
+    oled_write_str("ANOMALY:", 0, 4);
+    oled_write_anom(result.anomaly, 54, 4);
     
-    oled_write_str("ANOM:", 66, 2);
-    oled_write_anom(result.anomaly, 96, 2);
-    
-    oled_write_str("STATUS:", 0, 4);
-    oled_write_str(is_intrusion ? "ALERT LOCKOUT" : "NORMAL DRIVE", 48, 4);
-    
-    oled_write_str("BUS:", 0, 5);
-    oled_write_str(is_intrusion ? "ISOLATED" : "CONNECTED", 30, 5);
-    
-    oled_write_str(is_intrusion ? "! INTRUSION DETECTED !" : "STATUS: SECURE [OK]", 0, 7);
+    // Large Status Box
+    if (is_intrusion) {
+        oled_write_str_2x("BUS CUT", 24, 6);
+    } else {
+        oled_write_str_2x("DRIVE SAFE", 4, 6);
+    }
     
     // Output Structured JSON Telemetry Packet over Serial (For Web Dashboard / Wokwi Bridge)
     uint8_t load_pct = (g_mode == 2) ? 100 : ((g_mode == 3) ? 70 : ((g_mode == 4) ? 50 : 30));
