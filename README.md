@@ -1,105 +1,87 @@
-# CAN Security and Prediction Using Machine Learning
+# CAN Sentinel: TinyML Automotive CAN Intrusion Prevention & Failsafe System
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform: STM32 Nucleo](https://img.shields.io/badge/Platform-STM32%20Nucleo--C031C6-orange.svg)](https://wokwi.com)
+[![TinyML: Edge Impulse](https://img.shields.io/badge/TinyML-LSTM%20Anomaly%20Detection-green.svg)](#)
 
-The Controller Area Network (CAN) is an effective and robust communication network essential for integrating self-driving automobiles into modern transportation systems. As the complexity and data flow within CAN systems grow, traditional approaches struggle to maintain security, reliability, and efficiency. 
+## 📌 Project Overview
 
-This project leverages Machine Learning (ML) models to address these modern challenges, offering advanced solutions for real-time data prediction, anomaly detection, fault diagnosis, and intrusion detection to secure automotive networks.
+The **Controller Area Network (CAN)** is the primary communication backbone of modern automotive architecture. However, traditional CAN bus protocols lack intrinsic authentication or encryption, making in-vehicle Electronic Control Units (ECUs) vulnerable to Denial-of-Service (DoS), Fuzzy frame injection, and Impersonation spoofing attacks.
 
-## Key Features
-
-* **Anomaly Detection:** Identifies unusual patterns and events within the network.
-* **Fault Diagnosis:** Preemptively diagnoses system failures to ensure vehicle reliability.
-* **Real-Time Data Prediction:** Forecasts future CAN signals based on historical data sequences.
-* **Intrusion Detection:** Enhances overall network security by triggering alerts regarding potential security lapses and unauthorized access.
-
-## Machine Learning Architecture
-
-We implemented and evaluated three distinct models to process CAN data and identify threats. 
-
-| Model | Primary Function | Advantage |
-|---|---|---|
-| **ARIMA** (Auto Regressive Integrated Moving Average) | Signal Forecasting | Forecasts patterns in CAN signals to allow for preventive measures against system failures. |
-| **MA** (Moving Average) | Trend Analysis | Reduces volatility in CAN data and highlights long-term patterns to improve data interpretation. |
-| **LSTM** (Long Short-Term Memory) | Anomaly & Intrusion Detection | Excels at analyzing sequential data to predict unusual events and act as an intrusion alert system. |
-
-## Results & Performance
-
-The integration of these ML models significantly enhances both the prediction accuracy and the security of the CAN system. 
-
-Based on our statistical evaluations, the **LSTM network outperformed the other models**, demonstrating superior capabilities in anomaly detection and intrusion alerting.
-
-**Evaluation Metrics Used:**
-* **MAPE** (Mean Absolute Percentage Error)
-* **RMSE** (Root Mean Square Error)
-* **MAE** (Mean Absolute Error)
+**CAN Sentinel** is an advanced **Automotive Intrusion Prevention System (IPS)** that combines embedded **TinyML LSTM anomaly detection** with **active physical hardware failsafe countermeasures** and an interactive **Cyber Security Operations Center (CSOC) Web Dashboard**.
 
 ---
 
-## Getting Started
+## ⚡ Key Architectural Features
 
-### Prerequisites
+- **TinyML LSTM Neural Network**: Operates on-chip on an **STM32 Nucleo-C031C6** micro-controller, performing real-time sliding-window anomaly inference with <15ms latency.
+- **Emergency Safe-Stop Actuator (SG90 Servo)**: Replaces passive LED indicators with real physical vehicle intervention. Under attack, the actuator sweeps from **90° (Normal Drive)** to **0° (Emergency Safe-Stop Brake Lockout)**.
+- **Hardware Bus Isolation Relay**: Gateway firewall that physically trips open (`RELAY: OPEN`) upon intrusion detection to isolate compromised ECU nodes from propagating malicious frames across the bus.
+- **Multi-Frequency Acoustic Warning Siren**: Piezo buzzer warning siren triggering tailored alarm tones based on attack classification (1200 Hz DoS, 2000 Hz Fuzzy, 1600 Hz Impersonation).
+- **SSD1306 Monochrome OLED Instrument Cluster**: Renders live anomaly gauges, parsed frame byte payloads, failsafe actuator state, and system health status.
+- **Interactive HTML5 CSOC Visualizer**: High-tech automotive cyber-security dashboard with live network topology packet animation, real-time waveform plotting, audio siren synthesizer, and 1-click **Wokwi Web Serial API** integration.
 
-* Python 3.8+
-* `pandas`, `numpy`, `scikit-learn` (for local preprocessing)
-* C++ compiler (g++) (for local verification of the firmware)
+---
 
-### 1. Data Preprocessing (Optional)
+## 🛠 Hardware Circuit & Wokwi Pinout
 
-If you wish to preprocess raw CAN traffic datasets:
-1. Clone the repository:
+| Component | MCU Pin | Function |
+|---|---|---|
+| **SG90 Servo Motor** | `D6` (PWM) | Safe-Stop Emergency Brake Actuator |
+| **CAN Isolation Relay** | `D8` | Hardware Gateway Firewall |
+| **Piezo Buzzer** | `D7` | Multi-Pitch Warning Siren |
+| **SSD1306 OLED (128x64)** | `D14` (SDA), `D15` (SCL) | In-Vehicle Telemetry Display |
+| **Green Push-button** | `D2` | Select Normal CAN Traffic Stream |
+| **Red Push-button** | `D3` | Select DoS Attack Stream |
+| **Blue Push-button** | `D4` | Select Fuzzy Attack Stream |
+| **Yellow Push-button** | `D5` | Select Impersonation Attack Stream |
+
+---
+
+## 💻 Getting Started & Wokwi Simulation
+
+### Option A: Interactive Web CSOC Dashboard (Recommended)
+
+1. Launch the local dashboard web server:
    ```bash
-   git clone https://github.com/sankarlmao/CAN-IDS.git
-   cd CAN-IDS
+   python3 stm32_wokwi/wokwi_bridge.py --port 8080
    ```
-2. Run the preprocessor:
-   ```bash
-   python preprocess.py
-   ```
+2. Open `http://localhost:8080` in your web browser.
+3. Switch between **Normal Traffic**, **DoS Attack**, **Fuzzy Attack**, and **Impersonation** to observe live packet propagation, hardware servo rotation, relay cutoff, OLED updates, and real-time waveform charts!
 
-### 2. Running the Interactive Wokwi Simulation (Step-by-Step)
+### Option B: Wokwi Microcontroller Hardware Simulation
 
-The project includes an interactive hardware simulation environment built on [Wokwi](https://wokwi.com/) simulating an **STM32 Nucleo-C031C6** running a TinyML anomaly detection classifier.
+1. Open [Wokwi.com](https://wokwi.com/) and create a new **STM32 Nucleo-C031C6** project.
+2. Load the project files:
+   - Copy [`stm32_wokwi/sketch.ino`](stm32_wokwi/sketch.ino) to `sketch.ino`.
+   - Copy [`stm32_wokwi/diagram.json`](stm32_wokwi/diagram.json) to `diagram.json`.
+   - Create `test_buffers.h` and paste contents from [`stm32_wokwi/test_buffers.h`](stm32_wokwi/test_buffers.h).
+   - Create `ei_run_classifier.h` and paste contents from [`stm32_wokwi/edge-impulse-sdk/classifier/ei_run_classifier.h`](stm32_wokwi/edge-impulse-sdk/classifier/ei_run_classifier.h).
+3. In Wokwi Library Manager, add **SSD1306Ascii** and **Servo**.
+4. Press **Start Simulation** to run the hardware circuit.
+5. In the Web CSOC Dashboard, click **🔌 Connect Wokwi Serial** to sync the browser dashboard 1:1 with Wokwi's live serial output!
 
-#### Simulation Features
-* **Nucleo-C031C6 Board**: Runs the TinyML model.
-* **Red LED (PA5)**: Visual alert that turns ON when an intrusion anomaly is detected.
-* **SSD1306 OLED Display**: Renders real-time CAN traffic stream name, byte 6 signal value, anomaly score, and status banners.
-* **4 Colored Selector Buttons**:
-  * **Green (Pin D2)**: Switch to **Normal Traffic** stream.
-  * **Red (Pin D3)**: Switch to **DoS Attack** stream.
-  * **Blue (Pin D4)**: Switch to **Fuzzy Attack** stream.
-  * **Yellow (Pin D5)**: Switch to **Impersonation Attack** stream.
+### Option C: Local C++ Simulation Build
 
-#### Setup Instructions
-1. Open [Wokwi](https://wokwi.com/) in your browser.
-2. Create a new project and select the **STM32 Nucleo-C031C6** template.
-3. Set up the virtual environment files in Wokwi:
-   * **`sketch.ino`**: Copy the contents of [`stm32_wokwi/sketch.ino`](stm32_wokwi/sketch.ino) into the main `sketch.ino` tab.
-   * **`test_buffers.h`**: Create a new file in Wokwi named `test_buffers.h` and copy the contents of [`stm32_wokwi/test_buffers.h`](stm32_wokwi/test_buffers.h) into it.
-   * **`ei_run_classifier.h`**: Create a new file in Wokwi named `ei_run_classifier.h` and copy the contents of [`stm32_wokwi/edge-impulse-sdk/classifier/ei_run_classifier.h`](stm32_wokwi/edge-impulse-sdk/classifier/ei_run_classifier.h) into it.
-   * **`diagram.json`**: Replace the contents of Wokwi's `diagram.json` with the contents of [`stm32_wokwi/diagram.json`](stm32_wokwi/diagram.json).
-4. Install the required libraries in Wokwi:
-   * Click on the **Library Manager** tab (book icon on the left toolbar).
-   * Search for and install **SSD1306Ascii**.
-5. Run the Simulation:
-   * Click the green **Start Simulation** button (play icon).
-   * Press the colored buttons (Green, Red, Blue, Yellow) to switch between different CAN traffic streams.
-   * Observe the OLED display rendering the anomaly bar graph and see the red **Alert LED** light up instantly on DoS and Fuzzy attacks!
+Validate the firmware C++ code on Linux:
+```bash
+cd stm32_wokwi
+make
+./run_sim
+```
 
-### 3. Local Firmware Simulation Verification
+---
 
-You can test the firmware logic directly on your local Linux machine without a microcontroller:
-1. Navigate to the `stm32_wokwi` directory:
-   ```bash
-   cd stm32_wokwi
-   ```
-2. Compile the simulator:
-   ```bash
-   make
-   ```
-3. Run the compiled binary:
-   ```bash
-   ./run_sim
-   ```
-   This will run 10 steps of Normal Traffic and 10 steps of DoS Attack, logging outputs directly to the console.
+## 📊 Machine Learning Performance Summary
+
+| Attack Type | Frame Signature | Anomaly Threshold | Mitigation Trigger | Failsafe Action |
+|---|---|---|---|---|
+| **Normal Traffic** | Periodic sensor signals (0x0C) | `0.020` (Below 0.30) | Benign | Pass-through (`90° Drive`, `Relay Closed`) |
+| **DoS Attack** | High-rate 0x000 bus flood | `0.990` (EXCEEDED) | INTRUSION DETECTED | Emergency Brake (`0° Safe-Stop`), Bus Isolated (`Relay Open`), Siren 1200Hz |
+| **Fuzzy Attack** | Randomized payload injections | `0.880` (EXCEEDED) | INTRUSION DETECTED | Emergency Brake (`0° Safe-Stop`), Bus Isolated (`Relay Open`), Siren 2000Hz |
+| **Impersonation** | Spoofed ECU arbitration IDs | `0.940` (EXCEEDED) | INTRUSION DETECTED | Emergency Brake (`0° Safe-Stop`), Bus Isolated (`Relay Open`), Siren 1600Hz |
+
+---
+
+## 📄 License
+This project is open-source and released under the MIT License.

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAN Sentinel | TinyML Automotive Intrusion Prevention System</title>
+  <meta name="description" content="Real-time Automotive CAN Bus Intrusion Detection & Hardware Failsafe Prevention System powered by TinyML LSTM model and STM32 Microcontroller telemetry.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="shield-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>CAN SENTINEL <span class="badge">v2.0 TINYML IPS</span></h1>
+          <p class="subtitle">Automotive CAN Intrusion Prevention & Failsafe Actuator System</p>
+        </div>
+      </div>
+      
+      <div class="header-status">
+        <button class="btn btn-secondary" id="btn-connect-serial">🔌 Connect Wokwi Serial</button>
+        <div class="status-indicator" id="system-status-indicator">
+          <span class="pulse-dot"></span>
+          <span class="status-text" id="status-text">SYSTEM SECURE</span>
+        </div>
+        <div class="telemetry-badge">
+          <span class="label">BUS FREQ</span>
+          <span class="value">500 kbps</span>
+        </div>
+        <div class="telemetry-badge">
+          <span class="label">MCU</span>
+          <span class="value">STM32 Nucleo-C031</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Controls & Topology -->
+      <section class="left-col">
+        <!-- Attack Scenario Selector -->
+        <div class="card scenario-card">
+          <div class="card-header">
+            <h2>Stream Injection Control</h2>
+            <span class="card-subtitle">Simulate real CAN bus traffic streams</span>
+          </div>
+          <div class="scenario-buttons">
+            <button class="btn btn-scenario active" data-stream="normal" id="btn-normal">
+              <span class="dot green"></span>
+              <div class="btn-text">
+                <span class="title">Normal Traffic</span>
+                <span class="desc">Clean ECU telemetry</span>
+              </div>
+            </button>
+            <button class="btn btn-scenario" data-stream="dos" id="btn-dos">
+              <span class="dot red"></span>
+              <div class="btn-text">
+                <span class="title">DoS Attack</span>
+                <span class="desc">High-rate 0x000 flood</span>
+              </div>
+            </button>
+            <button class="btn btn-scenario" data-stream="fuzzy" id="btn-fuzzy">
+              <span class="dot blue"></span>
+              <div class="btn-text">
+                <span class="title">Fuzzy Attack</span>
+                <span class="desc">Random payload inject</span>
+              </div>
+            </button>
+            <button class="btn btn-scenario" data-stream="impersonation" id="btn-impersonate">
+              <span class="dot yellow"></span>
+              <div class="btn-text">
+                <span class="title">Impersonation</span>
+                <span class="desc">Spoofed Node IDs</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- CAN Bus Architecture Topology -->
+        <div class="card topology-card">
+          <div class="card-header">
+            <h2>CAN Bus Network Topology & Firewall</h2>
+            <span class="card-subtitle">Live frame propagation & node state</span>
+          </div>
+          
+          <div class="topology-diagram">
+            <!-- CAN Bus Lines -->
+            <div class="can-bus-line high">
+              <span class="bus-label">CAN_HIGH (2.5V - 3.5V)</span>
+            </div>
+            <div class="can-bus-line low">
+              <span class="bus-label">CAN_LOW (1.5V - 2.5V)</span>
+            </div>
+
+            <!-- Nodes Grid -->
+            <div class="nodes-container">
+              <div class="ecu-node" id="node-obd">
+                <div class="node-icon">🔌</div>
+                <div class="node-name">OBD-II / Telematics</div>
+                <div class="node-tag attack-tag">Entry Vector</div>
+              </div>
+
+              <div class="ecu-node firewall" id="node-gateway">
+                <div class="node-icon">🔒</div>
+                <div class="node-name">Gateway Firewall</div>
+                <div class="relay-state" id="relay-state-label">RELAY: CLOSED</div>
+              </div>
+
+              <div class="ecu-node ids-node" id="node-ids">
+                <div class="node-icon">🧠</div>
+                <div class="node-name">STM32 TinyML IDS</div>
+                <div class="node-tag">LSTM Engine</div>
+              </div>
+
+              <div class="ecu-node" id="node-brake">
+                <div class="node-icon">🚘</div>
+                <div class="node-name">Safe-Stop Actuator</div>
+                <div class="servo-state" id="servo-state-label">SERVO: 90°</div>
+              </div>
+            </div>
+
+            <!-- Packet particles canvas overlay -->
+            <canvas id="packet-canvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Hardware Telemetry & OLED Display -->
+      <section class="right-col">
+        <!-- Hardware Actuators Telemetry Card -->
+        <div class="card actuators-card">
+          <div class="card-header">
+            <h2>Hardware Failsafe Telemetry</h2>
+            <span class="card-subtitle">Real-time actuator status & acoustic defense</span>
+          </div>
+
+          <div class="actuators-grid">
+            <!-- Servo Gauge -->
+            <div class="actuator-box">
+              <h3>Brake Failsafe Servo</h3>
+              <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 100 60">
+                  <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
+                  <path class="gauge-fill" id="servo-gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#00f2fe" stroke-width="8" stroke-dasharray="125.6" stroke-dashoffset="62.8" stroke-linecap="round"/>
+                  <line class="gauge-needle" id="servo-needle" x1="50" y1="50" x2="50" y2="18" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <div class="gauge-value" id="servo-angle-text">90°</div>
+              </div>
+              <div class="actuator-status" id="servo-mode-text">THROTTLE OPEN</div>
+            </div>
+
+            <!-- Gateway Relay Switch -->
+            <div class="actuator-box">
+              <h3>Gateway Isolation Relay</h3>
+              <div class="switch-visual" id="relay-switch">
+                <div class="relay-contact" id="relay-contact"></div>
+              </div>
+              <div class="actuator-status" id="relay-status-text">CIRCUIT CLOSED</div>
+            </div>
+
+            <!-- Audio Siren Simulator -->
+            <div class="actuator-box">
+              <h3>Acoustic Alarm Siren</h3>
+              <div class="speaker-icon" id="speaker-icon">🔊</div>
+              <button class="btn btn-audio" id="btn-toggle-audio">Enable Sound</button>
+              <div class="actuator-status" id="audio-status-text">MUTED</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware OLED Display Simulation -->
+        <div class="card oled-card">
+          <div class="card-header">
+            <h2>STM32 SSD1306 OLED Screen Replica</h2>
+            <span class="card-subtitle">Monochrome 128x64 Matrix Display</span>
+          </div>
+
+          <div class="oled-frame">
+            <div class="oled-screen" id="oled-screen">
+              <div class="oled-line">STREAM: <span id="oled-stream">Normal Traffic</span></div>
+              <div class="oled-line">---------------------</div>
+              <div class="oled-line">Val: <span id="oled-val">12.0</span> | Anom: <span id="oled-anom">0.02</span></div>
+              <div class="oled-line">[<span id="oled-bar">==              </span>]</div>
+              <div class="oled-line">ACT: <span id="oled-act">NORMAL (90deg)</span></div>
+              <div class="oled-line">BUS: <span id="oled-bus">CONNECTED [OK]</span></div>
+              <div class="oled-line status-ok" id="oled-status">STATUS: SECURE [OK]</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Full-Width Section: Analytics & Incident Logs -->
+      <section class="bottom-full">
+        <!-- Live Waveform & Anomaly Chart -->
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2>Real-Time Anomaly Score & Byte Signal Waveform</h2>
+            <div class="legend">
+              <span class="legend-item"><span class="color-box cyan"></span> Anomaly Score</span>
+              <span class="legend-item"><span class="color-box magenta"></span> Signal Byte (0-255)</span>
+              <span class="legend-item"><span class="color-box red"></span> Threshold (0.30)</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="waveform-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Incident & Forensic Log Table -->
+        <div class="card log-card">
+          <div class="card-header">
+            <h2>Security Incident & Failsafe Mitigation Log</h2>
+            <button class="btn btn-secondary" id="btn-export-csv">Export Forensic CSV</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Traffic Stream</th>
+                  <th>Payload Byte</th>
+                  <th>Anomaly Score</th>
+                  <th>Threat Class</th>
+                  <th>Active Countermeasure</th>
+                </tr>
+              </thead>
+              <tbody id="log-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

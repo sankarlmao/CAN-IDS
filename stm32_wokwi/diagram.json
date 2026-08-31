@@ -11,36 +11,44 @@
       "attrs": {}
     },
     {
-      "type": "wokwi-led",
-      "id": "led_alert",
-      "top": -150,
-      "left": 150,
-      "attrs": {
-        "color": "red",
-        "label": "ALERT"
-      }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r_led",
-      "top": -110,
-      "left": 150,
-      "attrs": {
-        "value": "220"
-      }
-    },
-    {
       "type": "board-ssd1306",
       "id": "oled",
-      "top": -250,
-      "left": -100,
+      "top": -260,
+      "left": -120,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "brake_servo",
+      "top": -260,
+      "left": 120,
+      "attrs": {
+        "label": "SAFE-STOP BRAKE ACTUATOR"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "alarm_buzzer",
+      "top": -120,
+      "left": 240,
+      "attrs": {
+        "volume": "0.5"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "bus_relay",
+      "top": 40,
+      "left": 240,
+      "attrs": {
+        "label": "CAN BUS FIREWALL RELAY"
+      }
     },
     {
       "type": "wokwi-pushbutton",
       "id": "btn_normal",
-      "top": 200,
-      "left": -150,
+      "top": 240,
+      "left": -180,
       "attrs": {
         "color": "green",
         "label": "NORMAL"
@@ -49,8 +57,8 @@
     {
       "type": "wokwi-pushbutton",
       "id": "btn_dos",
-      "top": 200,
-      "left": -50,
+      "top": 240,
+      "left": -80,
       "attrs": {
         "color": "red",
         "label": "DoS"
@@ -59,8 +67,8 @@
     {
       "type": "wokwi-pushbutton",
       "id": "btn_fuzzy",
-      "top": 200,
-      "left": 50,
+      "top": 240,
+      "left": 20,
       "attrs": {
         "color": "blue",
         "label": "FUZZY"
@@ -69,8 +77,8 @@
     {
       "type": "wokwi-pushbutton",
       "id": "btn_impersonation",
-      "top": 200,
-      "left": 150,
+      "top": 240,
+      "left": 120,
       "attrs": {
         "color": "yellow",
         "label": "IMPRSN"
@@ -78,24 +86,31 @@
     }
   ],
   "connections": [
-    [ "nucleo:PA5", "r_led:1", "green", [ "h0" ] ],
-    [ "r_led:2", "led_alert:A", "green", [ "h0" ] ],
-    [ "nucleo:GND.8", "led_alert:C", "black", [ "h0" ] ],
-    
     [ "nucleo:GND.9", "oled:GND", "black", [ "v0" ] ],
     [ "nucleo:3V3", "oled:VCC", "red", [ "v0" ] ],
     [ "nucleo:D15", "oled:SCL", "yellow", [ "v0" ] ],
     [ "nucleo:D14", "oled:SDA", "blue", [ "v0" ] ],
-    
+
+    [ "nucleo:D6", "brake_servo:PWM", "orange", [ "h0" ] ],
+    [ "nucleo:5V", "brake_servo:V+", "red", [ "h0" ] ],
+    [ "nucleo:GND.2", "brake_servo:GND", "black", [ "h0" ] ],
+
+    [ "nucleo:D7", "alarm_buzzer:1", "purple", [ "h0" ] ],
+    [ "nucleo:GND.3", "alarm_buzzer:2", "black", [ "h0" ] ],
+
+    [ "nucleo:D8", "bus_relay:IN", "green", [ "h0" ] ],
+    [ "nucleo:5V", "bus_relay:VCC", "red", [ "h0" ] ],
+    [ "nucleo:GND.4", "bus_relay:GND", "black", [ "h0" ] ],
+
     [ "btn_normal:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_normal:1.l", "nucleo:D2", "green", [ "v0" ] ],
-    
+
     [ "btn_dos:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_dos:1.l", "nucleo:D3", "red", [ "v0" ] ],
-    
+
     [ "btn_fuzzy:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_fuzzy:1.l", "nucleo:D4", "blue", [ "v0" ] ],
-    
+
     [ "btn_impersonation:2.l", "nucleo:GND.1", "black", [ "v0" ] ],
     [ "btn_impersonation:1.l", "nucleo:D5", "yellow", [ "v0" ] ]
   ],
