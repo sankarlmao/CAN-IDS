@@ -18,15 +18,22 @@
 #define D3 3
 #define D4 4
 #define D5 5
+#define D6 6
 #define D7 7
 #define D8 8
+#define D9 9
+#define D10 10
+#define D11 11
+#define D12 12
 #define D13 13
+#define A0 14
 
 inline void pinMode(int pin, int mode) { (void)pin; (void)mode; }
 inline void digitalWrite(int pin, int val) { (void)pin; (void)val; }
 inline int digitalRead(int pin) { (void)pin; return HIGH; }
 inline void delay(int ms) { usleep(ms * 1000); }
 inline void delayMicroseconds(unsigned int us) { usleep(us); }
+inline unsigned long millis() { return 0; }
 
 struct MockSerial {
     void begin(int baud) { (void)baud; }
@@ -52,11 +59,22 @@ static MockSerial Serial;
 #define PIN_BTN_IMPERSONATE  D5
 #define PIN_BUZZER_ALARM     D7   // Warning Siren
 #define PIN_RELAY_GATEWAY    D8   // Hardware CAN Bus Isolation Switch
-#define PIN_LED_ALERT        D13  // Red Intrusion Alert LED
+
+// Tri-Color Status Indicator LEDs
+#define PIN_LED_SAFE_GREEN   D9   // Green Status LED: System Safe & Normal
+#define PIN_LED_HOLD_YELLOW  D12  // Yellow Status LED: Limp-Home Safety Hold
+#define PIN_LED_ALERT_RED    D13  // Red Status LED: Intrusion Threat Lock
+
+// CAN Bus Saturation Bar Graph Pins
+#define PIN_BAR_1            D6   // 25% Load Segment
+#define PIN_BAR_2            D10  // 50% Load Segment
+#define PIN_BAR_3            D11  // 75% Load Segment
+#define PIN_BAR_4            A0   // 100% DoS Saturation Segment
 
 // Global variables for active stream state
 static uint8_t g_mode = 1; // 1: Normal, 2: DoS, 3: Fuzzy, 4: Impersonation
 static size_t g_global_offset = 0;
+static unsigned long g_last_threat_ms = 0;
 
 // Ultra-lightweight 5x7 Font bitmap data (space through uppercase 'Z')
 static const uint8_t font5x7_basic[] = {
@@ -205,7 +223,6 @@ static void oled_write_str(const char* str, uint8_t col, uint8_t row) {
     }
 }
 
-// Ultra-lightweight float formatter (X.X) without stdio/snprintf
 static void oled_write_val1(float val, uint8_t col, uint8_t row) {
     int v = (int)(val * 10.0f);
     if (v < 0) {
@@ -236,7 +253,6 @@ static void oled_write_val1(float val, uint8_t col, uint8_t row) {
     oled_write_str(buf, col, row);
 }
 
-// Ultra-lightweight anomaly formatter (0.XX) without stdio/snprintf
 static void oled_write_anom(float val, uint8_t col, uint8_t row) {
     int v = (int)(val * 100.0f);
     if (v < 0) v = 0;
@@ -251,7 +267,6 @@ static void oled_write_anom(float val, uint8_t col, uint8_t row) {
     oled_write_str(buf, col, row);
 }
 #else
-// Host mock OLED functions
 static void oled_init() {}
 static void oled_clear() {}
 static void oled_invert(bool inv) { (void)inv; }
@@ -303,7 +318,7 @@ int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     return 0;
 }
 
-// Zero-timer hardware siren pulse (avoids linking STM32 HardwareTimer / HAL TIM)
+// Zero-timer hardware siren pulse
 static void buzzer_pulse(uint16_t freq_hz, uint16_t duration_ms) {
 #ifdef ARDUINO
     if (freq_hz == 0) {
@@ -325,6 +340,26 @@ static void buzzer_pulse(uint16_t freq_hz, uint16_t duration_ms) {
 #endif
 }
 
+// Update CAN Bus Saturation Bar Graph LEDs
+static void update_bus_bar_graph(uint8_t mode) {
+    if (mode == 2) { // DoS Attack (100% Saturation)
+        digitalWrite(PIN_BAR_1, HIGH);
+        digitalWrite(PIN_BAR_2, HIGH);
+        digitalWrite(PIN_BAR_3, HIGH);
+        digitalWrite(PIN_BAR_4, HIGH);
+    } else if (mode == 3 || mode == 4) { // Fuzzy / Impersonation (75% Load)
+        digitalWrite(PIN_BAR_1, HIGH);
+        digitalWrite(PIN_BAR_2, HIGH);
+        digitalWrite(PIN_BAR_3, HIGH);
+        digitalWrite(PIN_BAR_4, LOW);
+    } else { // Normal Traffic (35-50% Load)
+        digitalWrite(PIN_BAR_1, HIGH);
+        digitalWrite(PIN_BAR_2, HIGH);
+        digitalWrite(PIN_BAR_3, LOW);
+        digitalWrite(PIN_BAR_4, LOW);
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     
@@ -336,8 +371,22 @@ void setup() {
     pinMode(PIN_BUZZER_ALARM, OUTPUT);
     digitalWrite(PIN_BUZZER_ALARM, LOW);
     pinMode(PIN_RELAY_GATEWAY, OUTPUT);
-    pinMode(PIN_LED_ALERT, OUTPUT);
-    digitalWrite(PIN_LED_ALERT, LOW);
+    
+    // Configure Tri-Color LEDs
+    pinMode(PIN_LED_ALERT_RED, OUTPUT);
+    pinMode(PIN_LED_SAFE_GREEN, OUTPUT);
+    pinMode(PIN_LED_HOLD_YELLOW, OUTPUT);
+    
+    digitalWrite(PIN_LED_ALERT_RED, LOW);
+    digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
+    digitalWrite(PIN_LED_SAFE_GREEN, HIGH); // Default Green Safe ON
+    
+    // Configure Bar Graph Pins
+    pinMode(PIN_BAR_1, OUTPUT);
+    pinMode(PIN_BAR_2, OUTPUT);
+    pinMode(PIN_BAR_3, OUTPUT);
+    pinMode(PIN_BAR_4, OUTPUT);
+    update_bus_bar_graph(1);
     
     digitalWrite(PIN_RELAY_GATEWAY, HIGH);
     
@@ -377,16 +426,54 @@ void loop() {
     float current_val = get_can_sample(g_mode, g_global_offset + EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE - 1);
     bool is_intrusion = (result.anomaly > 0.30f);
 
+    // Update Bus Saturation Bar Graph
+    update_bus_bar_graph(g_mode);
+
+    // Automotive Safety State Machine (Red Alert vs Yellow Safety Hold vs Green Safe)
+    const char* led_state_str = "SAFE";
+    
     if (is_intrusion) {
-        digitalWrite(PIN_RELAY_GATEWAY, LOW);
-        digitalWrite(PIN_LED_ALERT, HIGH);
+#ifdef ARDUINO
+        g_last_threat_ms = millis();
+#endif
+        digitalWrite(PIN_RELAY_GATEWAY, LOW); // Cut Relay
+        
+        // Red LED ON, Green/Yellow OFF
+        digitalWrite(PIN_LED_ALERT_RED, HIGH);
+        digitalWrite(PIN_LED_SAFE_GREEN, LOW);
+        digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
+        led_state_str = "ALERT";
+
         if (g_mode == 2) buzzer_pulse(1200, 60);
         else if (g_mode == 3) buzzer_pulse(2000, 60);
         else buzzer_pulse(1600, 60);
     } else {
-        digitalWrite(PIN_RELAY_GATEWAY, HIGH);
-        digitalWrite(PIN_LED_ALERT, LOW);
         digitalWrite(PIN_BUZZER_ALARM, LOW);
+        
+        // Check 3-second Limp-Home Safety Hold
+#ifdef ARDUINO
+        bool in_safety_hold = (g_last_threat_ms > 0) && (millis() - g_last_threat_ms < 3000);
+#else
+        bool in_safety_hold = false;
+#endif
+
+        if (in_safety_hold) {
+            digitalWrite(PIN_RELAY_GATEWAY, LOW); // Hold Relay open during safety check
+            
+            // Yellow LED ON, Red/Green OFF
+            digitalWrite(PIN_LED_HOLD_YELLOW, HIGH);
+            digitalWrite(PIN_LED_ALERT_RED, LOW);
+            digitalWrite(PIN_LED_SAFE_GREEN, LOW);
+            led_state_str = "HOLD";
+        } else {
+            digitalWrite(PIN_RELAY_GATEWAY, HIGH); // Restore Normal CAN Bus Relay
+            
+            // Green LED ON, Red/Yellow OFF
+            digitalWrite(PIN_LED_SAFE_GREEN, HIGH);
+            digitalWrite(PIN_LED_ALERT_RED, LOW);
+            digitalWrite(PIN_LED_HOLD_YELLOW, LOW);
+            led_state_str = "SAFE";
+        }
     }
 
     oled_invert(is_intrusion && ((g_global_offset % 2) == 0));
@@ -401,15 +488,22 @@ void loop() {
     oled_write_str("ANOM:", 66, 2);
     oled_write_anom(result.anomaly, 96, 2);
     
-    oled_write_str("MODE:", 0, 4);
-    oled_write_str(is_intrusion ? "ALERT LOCK" : "NORMAL DRIVE", 36, 4);
+    oled_write_str("STATUS:", 0, 4);
+    if (is_intrusion) {
+        oled_write_str("ALERT LOCKOUT", 48, 4);
+    } else if (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000)) {
+        oled_write_str("SAFETY HOLD", 48, 4);
+    } else {
+        oled_write_str("NORMAL DRIVE", 48, 4);
+    }
     
     oled_write_str("BUS:", 0, 5);
-    oled_write_str(is_intrusion ? "ISOLATED" : "CONNECTED", 30, 5);
+    oled_write_str(is_intrusion ? "ISOLATED" : (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000) ? "HOLD CUT" : "CONNECTED"), 30, 5);
     
-    oled_write_str(is_intrusion ? "! INTRUSION DETECTED !" : "STATUS: SECURE [OK]", 0, 7);
+    oled_write_str(is_intrusion ? "! INTRUSION DETECTED !" : (g_last_threat_ms > 0 && (millis() - g_last_threat_ms < 3000) ? "LIMP-HOME SAFETY RECOVERY" : "STATUS: SECURE [OK]"), 0, 7);
     
-    // Output Structured JSON Telemetry Packet over Serial
+    // Output Structured JSON Telemetry Packet over Serial (For Web Dashboard / Wokwi Bridge)
+    uint8_t load_pct = (g_mode == 2) ? 100 : ((g_mode == 3 || g_mode == 4) ? 75 : 35);
     Serial.print("TELEMETRY_JSON:{\"stream\":\"");
     Serial.print(get_mode_name(g_mode));
     Serial.print("\",\"offset\":");
@@ -418,12 +512,14 @@ void loop() {
     printVal1(current_val);
     Serial.print(",\"anomaly\":");
     printAnom3(result.anomaly);
+    Serial.print(",\"load\":");
+    Serial.print((int)load_pct);
     Serial.print(",\"actuator\":");
     Serial.print(is_intrusion ? 0 : 90);
     Serial.print(",\"relay\":");
     Serial.print(is_intrusion ? 0 : 1);
     Serial.print(",\"status\":\"");
-    Serial.print(is_intrusion ? "ALERT" : "SECURE");
+    Serial.print(led_state_str);
     Serial.println("\"}");
 
     g_global_offset++;
