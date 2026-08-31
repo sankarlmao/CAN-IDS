@@ -28,7 +28,7 @@
       </div>
       
       <div class="header-status">
-        <button class="btn btn-secondary" id="btn-connect-serial">🔌 Connect Wokwi Serial</button>
+        <button class="btn btn-secondary" id="btn-connect-serial">Connect Wokwi Serial</button>
         <div class="status-indicator" id="system-status-indicator">
           <span class="pulse-dot"></span>
           <span class="status-text" id="status-text">SYSTEM SECURE</span>
@@ -105,27 +105,27 @@
             <!-- Nodes Grid -->
             <div class="nodes-container">
               <div class="ecu-node" id="node-obd">
-                <div class="node-icon">🔌</div>
+                <div class="node-icon">OBD</div>
                 <div class="node-name">OBD-II / Telematics</div>
                 <div class="node-tag attack-tag">Entry Vector</div>
               </div>
 
               <div class="ecu-node firewall" id="node-gateway">
-                <div class="node-icon">🔒</div>
+                <div class="node-icon">GATEWAY</div>
                 <div class="node-name">Gateway Firewall</div>
                 <div class="relay-state" id="relay-state-label">RELAY: CLOSED</div>
               </div>
 
               <div class="ecu-node ids-node" id="node-ids">
-                <div class="node-icon">🧠</div>
+                <div class="node-icon">IDS</div>
                 <div class="node-name">STM32 TinyML IDS</div>
                 <div class="node-tag">LSTM Engine</div>
               </div>
 
               <div class="ecu-node" id="node-brake">
-                <div class="node-icon">🚘</div>
+                <div class="node-icon">ACTUATOR</div>
                 <div class="node-name">Safe-Stop Actuator</div>
-                <div class="servo-state" id="servo-state-label">SERVO: 90°</div>
+                <div class="servo-state" id="servo-state-label">SERVO: 90 deg</div>
               </div>
             </div>
 
@@ -154,7 +154,7 @@
                   <path class="gauge-fill" id="servo-gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#00f2fe" stroke-width="8" stroke-dasharray="125.6" stroke-dashoffset="62.8" stroke-linecap="round"/>
                   <line class="gauge-needle" id="servo-needle" x1="50" y1="50" x2="50" y2="18" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
                 </svg>
-                <div class="gauge-value" id="servo-angle-text">90°</div>
+                <div class="gauge-value" id="servo-angle-text">90 deg</div>
               </div>
               <div class="actuator-status" id="servo-mode-text">THROTTLE OPEN</div>
             </div>
@@ -171,7 +171,7 @@
             <!-- Audio Siren Simulator -->
             <div class="actuator-box">
               <h3>Acoustic Alarm Siren</h3>
-              <div class="speaker-icon" id="speaker-icon">🔊</div>
+              <div class="speaker-icon" id="speaker-icon">SIREN</div>
               <button class="btn btn-audio" id="btn-toggle-audio">Enable Sound</button>
               <div class="actuator-status" id="audio-status-text">MUTED</div>
             </div>

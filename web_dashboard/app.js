@@ -84,7 +84,7 @@ if (btnConnectSerial) {
         if (serialReader) await serialReader.cancel();
         await serialPort.close();
         isSerialConnected = false;
-        btnConnectSerial.textContent = '🔌 Connect Wokwi Serial';
+        btnConnectSerial.textContent = 'Connect Wokwi Serial';
         btnConnectSerial.style.background = 'rgba(255, 255, 255, 0.05)';
         return;
       }
@@ -92,7 +92,7 @@ if (btnConnectSerial) {
       serialPort = await navigator.serial.requestPort();
       await serialPort.open({ baudRate: 115200 });
       isSerialConnected = true;
-      btnConnectSerial.textContent = '🟢 Connected to Wokwi MCU';
+      btnConnectSerial.textContent = 'Connected to Wokwi MCU';
       btnConnectSerial.style.background = 'rgba(48, 209, 88, 0.2)';
 
       const textDecoder = new TextDecoderStream();
@@ -119,7 +119,7 @@ if (btnConnectSerial) {
       }
     } catch (err) {
       console.error('Serial Error:', err);
-      btnConnectSerial.textContent = '🔌 Connect Wokwi Serial';
+      btnConnectSerial.textContent = 'Connect Wokwi Serial';
       btnConnectSerial.style.background = 'rgba(255, 255, 255, 0.05)';
       isSerialConnected = false;
     }
@@ -173,17 +173,17 @@ function applyTelemetryData(data) {
   const targetAngle = data.actuator;
   const rotationDeg = (targetAngle / 180) * 180 - 90;
   servoNeedle.style.transform = `rotate(${rotationDeg}deg)`;
-  servoAngleText.textContent = `${targetAngle}°`;
+  servoAngleText.textContent = `${targetAngle} deg`;
   
   if (isIntrusion) {
-    servoModeText.textContent = 'SAFE-STOP ENGAGED (0°)';
+    servoModeText.textContent = 'SAFE-STOP ENGAGED (0 deg)';
     servoModeText.classList.add('alert');
-    servoStateLabel.textContent = 'SERVO: 0° [BRAKE]';
+    servoStateLabel.textContent = 'SERVO: 0 deg [BRAKE]';
     servoStateLabel.style.color = '#ff3b30';
   } else {
-    servoModeText.textContent = 'THROTTLE OPEN (90°)';
+    servoModeText.textContent = 'THROTTLE OPEN (90 deg)';
     servoModeText.classList.remove('alert');
-    servoStateLabel.textContent = 'SERVO: 90° [DRIVE]';
+    servoStateLabel.textContent = 'SERVO: 90 deg [DRIVE]';
     servoStateLabel.style.color = '#30d158';
   }
 
@@ -368,17 +368,17 @@ function tick() {
   // Needle rotation calculation: 90 deg = -90deg rotation in SVG needle transform, 0 deg = -180deg
   const rotationDeg = (targetAngle / 180) * 180 - 90;
   servoNeedle.style.transform = `rotate(${rotationDeg}deg)`;
-  servoAngleText.textContent = `${targetAngle}°`;
+  servoAngleText.textContent = `${targetAngle} deg`;
   
   if (isIntrusion) {
-    servoModeText.textContent = 'SAFE-STOP ENGAGED (0°)';
+    servoModeText.textContent = 'SAFE-STOP ENGAGED (0 deg)';
     servoModeText.classList.add('alert');
-    servoStateLabel.textContent = 'SERVO: 0° [BRAKE]';
+    servoStateLabel.textContent = 'SERVO: 0 deg [BRAKE]';
     servoStateLabel.style.color = '#ff3b30';
   } else {
-    servoModeText.textContent = 'THROTTLE OPEN (90°)';
+    servoModeText.textContent = 'THROTTLE OPEN (90 deg)';
     servoModeText.classList.remove('alert');
-    servoStateLabel.textContent = 'SERVO: 90° [DRIVE]';
+    servoStateLabel.textContent = 'SERVO: 90 deg [DRIVE]';
     servoStateLabel.style.color = '#30d158';
   }
 
@@ -435,7 +435,7 @@ function tick() {
     <td>0x${val.toString(16).toUpperCase().padStart(2, '0')} (${val})</td>
     <td>${anomaly.toFixed(3)}</td>
     <td><span class="badge-log ${isIntrusion ? 'alert' : 'ok'}">${isIntrusion ? 'MALICIOUS' : 'BENIGN'}</span></td>
-    <td>${isIntrusion ? 'Servo Safe-Stop (0°) & Relay Trip' : 'Pass-through'}</td>
+    <td>${isIntrusion ? 'Servo Safe-Stop (0 deg) & Relay Trip' : 'Pass-through'}</td>
   `;
   logTableBody.insertBefore(tr, logTableBody.firstChild);
   if (logTableBody.children.length > 25) {
